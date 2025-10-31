@@ -22,12 +22,14 @@ namespace Unity.XR.OpenXR.Features.PICOSupport
         UiName = "PICO XR",
         Description = "Feature set for using PICO XR Features",
         FeatureSetId = featureSetId,
-        SupportedBuildTargets = new BuildTargetGroup[] { BuildTargetGroup.Android},
-        RequiredFeatureIds = new string[]
+        SupportedBuildTargets = new BuildTargetGroup[] { BuildTargetGroup.Android}
+        // RequiredFeatureIds removed to allow coexistence with Meta Quest features
+        // Features will be enabled programmatically via BuildProfileXRProcessor
+        /*RequiredFeatureIds = new string[]
         {
             PICOFeature.featureId,
             OpenXRExtensions.featureId,
-        }
+        }*/
     )]
     class PICOFeatureSet
     {

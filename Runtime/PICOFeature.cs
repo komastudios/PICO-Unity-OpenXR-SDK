@@ -100,7 +100,7 @@ namespace Unity.XR.OpenXR.Features.PICOSupport
                             feature.enabled = ((feature is PICONeo3ControllerProfile) || (feature is PICO4ControllerProfile));
                         }
                     },
-                    error = true,
+                    error = false, // Changed from true to false to allow Meta Quest controller profiles
                 }
             };
 

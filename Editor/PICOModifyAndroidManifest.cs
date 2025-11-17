@@ -18,7 +18,9 @@ namespace Unity.XR.OpenXR.Features.PICOSupport
 {
     internal class PICOModifyAndroidManifest : OpenXRFeatureBuildHooks
     {
-        public override int callbackOrder => 1;
+        // Run after all other manifest processors (highest found is 2)
+        // This ensures we clean up Oculus/Meta entries after they're added
+        public override int callbackOrder => 100;
         public override Type featureType => typeof(PICOFeature);
         protected override void OnPreprocessBuildExt(BuildReport report) { }
         protected override void OnPostGenerateGradleAndroidProjectExt(string path)

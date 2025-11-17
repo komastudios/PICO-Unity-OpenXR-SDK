@@ -163,8 +163,127 @@ namespace Unity.XR.OpenXR.Features.PICOSupport
                 }
             }
 
+            private void RemoveOculusMetaEntries()
+            {
+                // Remove Oculus/Meta specific meta-data from application element
+                DeleteAndroidMetaData("com.oculus.vr.focusaware");
+                DeleteAndroidMetaData("com.oculus.ossplash.background");
+                DeleteAndroidMetaData("com.oculus.telemetry.project_guid");
+                DeleteAndroidMetaData("com.oculus.supportedDevices");
+                DeleteAndroidMetaData("com.oculus.always_draw_view_root");
+
+                // Find the main activity element
+                XmlNode activityNode = SelectSingleNode("/manifest/application/activity[@android:name='com.unity3d.player.UnityPlayerGameActivity']", nsMgr);
+                if (activityNode == null)
+                {
+                    // Fallback: try without namespace prefix
+                    activityNode = SelectSingleNode("//activity[@android:name='com.unity3d.player.UnityPlayerGameActivity']");
+                }
+
+                if (activityNode != null)
+                {
+                    // Remove Oculus/Meta meta-data from activity
+                    XmlNodeList activityMetaDataNodes = activityNode.SelectNodes("meta-data");
+                    List<XmlNode> nodesToRemove = new List<XmlNode>();
+                    foreach (XmlNode node in activityMetaDataNodes)
+                    {
+                        if (node.Attributes != null)
+                        {
+                            var nameAttr = node.Attributes["android:name"];
+                            if (nameAttr != null && nameAttr.Value.StartsWith("com.oculus."))
+                            {
+                                nodesToRemove.Add(node);
+                            }
+                        }
+                    }
+                    foreach (var node in nodesToRemove)
+                    {
+                        node.ParentNode?.RemoveChild(node);
+                    }
+
+                    // Find the intent-filter node and remove Oculus VR category
+                    XmlNode intentFilterNode = activityNode.SelectSingleNode("intent-filter");
+                    if (intentFilterNode != null)
+                    {
+                        XmlNodeList categoryNodes = intentFilterNode.SelectNodes("category");
+                        nodesToRemove.Clear();
+                        foreach (XmlNode categoryNode in categoryNodes)
+                        {
+                            if (categoryNode.Attributes != null)
+                            {
+                                var nameAttr = categoryNode.Attributes["android:name"];
+                                if (nameAttr != null && nameAttr.Value == "com.oculus.intent.category.VR")
+                                {
+                                    nodesToRemove.Add(categoryNode);
+                                }
+                            }
+                        }
+                        foreach (var node in nodesToRemove)
+                        {
+                            node.ParentNode?.RemoveChild(node);
+                            UnityEngine.Debug.Log("[PICO] Removed com.oculus.intent.category.VR from UnityPlayerGameActivity");
+                        }
+                    }
+                }
+
+                UnityEngine.Debug.Log("[PICO] Removed Oculus/Meta specific manifest entries");
+            }
+
+            private void AddPICOIntentCategory()
+            {
+                // Find the main activity element
+                XmlNode activityNode = SelectSingleNode("/manifest/application/activity[@android:name='com.unity3d.player.UnityPlayerGameActivity']", nsMgr);
+                if (activityNode == null)
+                {
+                    // Fallback: try without namespace prefix
+                    activityNode = SelectSingleNode("//activity[@android:name='com.unity3d.player.UnityPlayerGameActivity']");
+                }
+
+                if (activityNode == null)
+                {
+                    UnityEngine.Debug.LogWarning("Could not find UnityPlayerGameActivity in AndroidManifest.xml");
+                    return;
+                }
+
+                // Find the intent-filter node
+                XmlNode intentFilterNode = activityNode.SelectSingleNode("intent-filter");
+                if (intentFilterNode == null)
+                {
+                    UnityEngine.Debug.LogWarning("Could not find intent-filter in UnityPlayerGameActivity");
+                    return;
+                }
+
+                // Check if PICO VR category already exists
+                XmlNodeList categoryNodes = intentFilterNode.SelectNodes("category");
+                foreach (XmlNode categoryNode in categoryNodes)
+                {
+                    if (categoryNode.Attributes != null)
+                    {
+                        var nameAttr = categoryNode.Attributes["android:name"];
+                        if (nameAttr != null && nameAttr.Value == "com.picovr.intent.category.VRAPP")
+                        {
+                            // Already exists, no need to add
+                            return;
+                        }
+                    }
+                }
+
+                // Add PICO VR intent category
+                var picoCategory = CreateElement("category");
+                picoCategory.SetAttribute("name", AndroidXmlNamespace, "com.picovr.intent.category.VRAPP");
+                intentFilterNode.AppendChild(picoCategory);
+
+                UnityEngine.Debug.Log("[PICO] Added com.picovr.intent.category.VRAPP to UnityPlayerGameActivity");
+            }
+
             internal void AddPICOMetaData(string path)
             {
+                // Remove conflicting Oculus/Meta entries for Pico builds
+                RemoveOculusMetaEntries();
+
+                // Add PICO VR intent category to the main activity
+                AddPICOIntentCategory();
+
                 CreateOrUpdateAndroidMetaData("pvr.app.type", "vr");
                 CreateOrUpdateAndroidMetaData("pvr.sdk.version", "Unity OpenXR "+PICOFeature.SDKVersion);
                 CreateOrUpdateAndroidMetaData("pxr.sdk.version_code", "5110");

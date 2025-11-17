@@ -34,6 +34,7 @@ namespace Unity.XR.OpenXR.Features.PICOSupport
         BuildTargetGroups = new[] { BuildTargetGroup.Android },
         CustomRuntimeLoaderBuildTargets = new[] { BuildTarget.Android },
         OpenxrExtensionStrings = PicoExtensionList,
+        TargetOpenXRApiVersion = "1.0",
         FeatureId = featureId
     )]
 #endif
